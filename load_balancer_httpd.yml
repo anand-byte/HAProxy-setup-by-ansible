@@ -1,0 +1,48 @@
+- hosts: "web_server"
+  tasks:
+  - name: "installing httpd rpm"
+    package:
+            name: "httpd"
+            state: present
+    register: "httpd_instld"
+  - name: "starting the httpd service"
+    service:
+            name: "httpd"
+            state: started
+    when: httpd_instld.rc == 0
+  - name: "ifconfig command"
+    command: "ifconfig enp0s3"
+    register: x  
+  - name: "copying file in doc root"
+    copy:
+            dest: "/var/www/html/home.html"
+            content: >
+                    {{ x}}
+  - name: "permiting a particular port"
+    firewalld:
+            port: 80/tcp
+            permanent: true
+            state: enabled
+                    
+- hosts: "load_balancer"
+  tasks:
+  - name: "HAproxy installing"
+    package:
+            name: "haproxy"
+            state: present
+    register: "haproxy_instld"
+  - name: "copying the conf file of haproxy"
+    template:
+            src: "haproxy.cfg"
+            dest: "/etc/haproxy/haproxy.cfg"
+  - name: "starting haproxy"
+    service:
+            name: "haproxy"
+            state: started
+    when: "haproxy_instld.rc ==0" 
+  - name: "permiting a particular port"
+    firewalld:
+            port: 8080/tcp
+            permanent: true
+            state: enabled
+            
